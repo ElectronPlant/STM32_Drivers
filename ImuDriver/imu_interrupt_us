@@ -1,0 +1,82 @@
+//--------------------------------------------------
+// Function
+//--------------------------------------------------
+// =====================================================
+// imuInterrupt()
+// Manages the external interrupts of the IMU.
+// This IMU will be configured to set the interrupt every time new measurements are available.
+// The function will log the time stamp of the interrupt and sets imu_data_ready as true. If
+// imu_data_ready is true it means that the data has overflow and a LED will be turned on.
+// ---
+// Parameters:
+//		None
+// =====================================================
+void imuInterrupt()
+{
+	// --- Time Stamp --
+	// Needs to be done as soon as possible.
+
+	//time_buffer = millis();		// Time captured in [ms]
+	time_buffer = micros();  		// Time captured in [us]
+
+	// --- Overflow check ---
+	if (imu_data_ready) {
+		imu_overflow = true;
+		// Turn LED on
+		#ifdef IMU_USE_LED
+			LEDS_GPIO_PORT->BSRR = IMU_LED;  // Turn IMU LED ON
+		#endif
+	}
+
+	// Turn LED off
+	#ifdef IMU_USE_LED
+		if (!imu_data_ready) LEDS_GPIO_PORT->BRR = IMU_LED;  // Turn IMU LED OFF
+	#endif
+
+	// --- Data log ---
+	imu_data_ready = true;
+}
+
+
+// =====================================================
+// imuIntTimeout()
+// Check the timeout of the interrupt.
+// This is done through this function to have a consistent error function
+// ---
+// Parameters:
+//		@return bool		--> (bool) If false, there is a timeout
+// =====================================================
+bool imuIntTimeout()
+{
+#ifdef IMU_FAKE
+
+	// --- Fake target ---
+	imu_data_ready = true;
+	//delay(100);
+	time_buffer += 100;
+	return true;
+
+#else
+
+	// --- Real target ---
+	uint32_t buffer_time = time_buffer;
+	if (micros() - buffer_time > (uint32_t)IMU_INTERRUPT_TIMEOUT) {
+
+		// --- Timeout error ---
+		#ifdef IMU_INTERRUPT_DEBUG
+				Serial.println("IMU Interrupt Timeout");
+		#endif
+		// Turn LED on
+		#ifdef IMU_USE_LED
+			if (!imu_data_ready) LEDS_GPIO_PORT->BSRR = IMU_LED;  // Turn IMU LED On
+		#endif
+
+		imu.imu_state = IMU_INTERRUPT_ERROR;
+
+		return false;
+	}
+
+	return true;
+
+#endif
+}
