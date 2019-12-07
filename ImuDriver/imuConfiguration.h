@@ -28,7 +28,7 @@
  *  - Change Log -
  *  --------------
  *  V0.0: 22 jun. 2019 
- *		-)First issue.
+ *		-)First issue. 
  * 
  */ 
 
